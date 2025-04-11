@@ -1,0 +1,4 @@
+package id.ac.ui.cs.advprog.pelangganservice.command;
+
+public class AddCustomerCommand {
+}
