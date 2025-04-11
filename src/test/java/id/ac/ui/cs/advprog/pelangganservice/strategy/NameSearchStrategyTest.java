@@ -20,19 +20,24 @@ public class NameSearchStrategyTest {
                 new Customer("c102", "Bob Smith", "bob@example.com"),
                 new Customer("c103", "Alice Cooper", "alice.cooper@example.com")
         );
-        // Untuk tahap RED, kita belum implementasi strategi sehingga lakukan fail() di test
-        searchStrategy = null;
+        // Inisialisasi strategi dengan implementasi NameSearchStrategy
+        searchStrategy = new NameSearchStrategy();
     }
 
     @Test
     public void testSearchByNameReturnsMatchingCustomers() {
-        // Test seharusnya mencari keyword "Alice" dan mengembalikan 2 customer
-        fail("Not yet implemented (RED).");
+        // Mencari keyword "Alice" diharapkan menemukan 2 customer
+        List<Customer> results = searchStrategy.search(customers, "Alice");
+        assertEquals(2, results.size(), "Harusnya terdapat 2 customer yang cocok");
+        for (Customer customer : results) {
+            assertTrue(customer.getName().toLowerCase().contains("alice"), "Nama harus mengandung 'Alice'");
+        }
     }
 
     @Test
     public void testSearchByNameReturnsEmptyListForNoMatch() {
-        // Test seharusnya mencari keyword yang tidak ada, misalnya "Charlie", mengembalikan list kosong
-        fail("Not yet implemented (RED).");
+        // Mencari keyword yang tidak ada, misalnya "Charlie", harus mengembalikan list kosong
+        List<Customer> results = searchStrategy.search(customers, "Charlie");
+        assertTrue(results.isEmpty(), "Hasil pencarian harus kosong jika tidak ada kecocokan");
     }
 }
