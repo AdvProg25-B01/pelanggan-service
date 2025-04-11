@@ -17,7 +17,7 @@ public class UpdateCustomerCommandTest {
 
     @BeforeEach
     void setUp() {
-        // Inisialisasi repository sederhana dan tambah 1 data
+        // Inisialisasi repository sederhana dan tambah 1 dataa
         repository = new FakeCustomerRepository();
         repository.save(new Customer("c001", "Alice", "alice@example.com"));
 
@@ -72,8 +72,7 @@ public class UpdateCustomerCommandTest {
 
         @Override
         public void save(Customer customer) {
-            // Jika data sudah ada, update data
-            // Jika belum ada, anggap ini penyimpanan pertama
+            // Jika customer sudah ada, update; jika tidak, tambahkan
             Customer existing = findById(customer.getId());
             if (existing == null) {
                 storage.add(customer);
@@ -89,6 +88,15 @@ public class UpdateCustomerCommandTest {
                     .filter(c -> c.getId().equals(id))
                     .findFirst()
                     .orElse(null);
+        }
+
+        @Override
+        public void delete(String id) {
+            // Implementasi minimal untuk menghapus customer berdasarkan id:
+            Customer existing = findById(id);
+            if (existing != null) {
+                storage.remove(existing);
+            }
         }
     }
 }

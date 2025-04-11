@@ -56,12 +56,31 @@ public class AddCustomerCommandTest {
 
         @Override
         public void save(Customer customer) {
-            storage.add(customer);
+            // Jika customer sudah ada, update; jika tidak, tambahkan
+            Customer existing = findById(customer.getId());
+            if (existing == null) {
+                storage.add(customer);
+            } else {
+                storage.remove(existing);
+                storage.add(customer);
+            }
         }
 
         @Override
         public Customer findById(String id) {
-            return storage.stream().filter(c -> c.getId().equals(id)).findFirst().orElse(null);
+            return storage.stream()
+                    .filter(c -> c.getId().equals(id))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        @Override
+        public void delete(String id) {
+            // Implementasi minimal untuk menghapus customer berdasarkan id:
+            Customer existing = findById(id);
+            if (existing != null) {
+                storage.remove(existing);
+            }
         }
     }
 }
