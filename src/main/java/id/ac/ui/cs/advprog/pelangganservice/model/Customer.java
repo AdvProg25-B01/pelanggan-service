@@ -1,8 +1,18 @@
 package id.ac.ui.cs.advprog.pelangganservice.model;
 
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
+// import java.util.List; // Untuk "transaksi pelanggan" jika akan di-detailkan nanti
 
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Customer {
     private UUID id;
     private String fullName;
@@ -13,5 +23,7 @@ public class Customer {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // Constructor, getter, setter, toString, equals, hashCode bisa ditambahkan jika diperlukan
+    // Placeholder untuk riwayat transaksi jika ingin ditampilkan
+    // Nanti ini bisa diisi dari service lain atau query gabungan
+    // private List<String> transactionHistorySummary;
 }
