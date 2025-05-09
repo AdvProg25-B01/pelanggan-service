@@ -8,7 +8,7 @@ package id.ac.ui.cs.advprog.pelangganservice.controller;
 // @RequestMapping("/customers")
 public class CustomerController {
 
-    // Inject CustomerService
+    // Inject CustomerServices
     // Buat method untuk handle request (GET, POST, etc.)
     // Contoh:
     // @GetMapping

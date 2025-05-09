@@ -10,7 +10,7 @@ public class SearchByPhoneNumberStrategy implements SearchStrategy {
         if (searchTerm == null || searchTerm.trim().isEmpty()) {
             return customers;
         }
-        // Nomor telepon biasanya tidak case-sensitive, tapi bisa mengandung spasi/simbol
+        // Nomor teleponm biasanya tidak case-sensitive, tapi bisa mengandung spasi/simbol
         String normalizedSearchTerm = searchTerm.replaceAll("[^0-9]", "");
         return customers.stream()
                 .filter(customer -> customer.getPhoneNumber().replaceAll("[^0-9]", "").contains(normalizedSearchTerm))
