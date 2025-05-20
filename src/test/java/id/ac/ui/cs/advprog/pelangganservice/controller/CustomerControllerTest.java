@@ -191,7 +191,8 @@ class CustomerControllerTest {
                         .content(objectMapper.writeValueAsString(updatedDetails)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fullName", is(customerAfterUpdate.getFullName())))
-                .andExpect(jsonPath("$.isActive", is(customerAfterUpdate.isActive())));
+                .andExpect(jsonPath("$.active", is(customerAfterUpdate.isActive())));
+
     }
 
     @Test

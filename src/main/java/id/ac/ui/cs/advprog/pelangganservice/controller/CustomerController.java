@@ -29,7 +29,7 @@ public class CustomerController {
         this.customerService = customerService;
     }
 
-    // Create a new customer (C)
+    // Create a new customer (C)    201 (created) (resource baru)
     @PostMapping
     public ResponseEntity<Customer> createCustomer(@RequestBody Customer customer) {
         // ID, createdAt, updatedAt, dan isActive akan di-handle oleh service/repository
@@ -71,7 +71,7 @@ public class CustomerController {
         return ResponseEntity.ok(customers);
     }
 
-    // Get a single customer by ID (R)
+    // Get a single customer by ID (R) 200 (permintaan sukses)
     @GetMapping("/{id}")
     public ResponseEntity<Customer> getCustomerById(@PathVariable UUID id) {
         Optional<Customer> customer = customerService.getCustomerById(id);
@@ -92,9 +92,9 @@ public class CustomerController {
     public ResponseEntity<Void> deleteCustomer(@PathVariable UUID id) {
         boolean deleted = customerService.deleteCustomer(id);
         if (deleted) {
-            return ResponseEntity.noContent().build(); // 204 No Content
+            return ResponseEntity.noContent().build(); // 204 untk operasi hapus tanpa isi response
         } else {
-            return ResponseEntity.notFound().build(); // 404 Not Found
+            return ResponseEntity.notFound().build(); // 404 data tidak ditemukan
         }
     }
 }
