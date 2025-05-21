@@ -16,6 +16,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import id.ac.ui.cs.advprog.pelangganservice.dto.UpdateCustomerRequestDTO;
+import id.ac.ui.cs.advprog.pelangganservice.dto.CustomerMapper;
+
 @Service
 public class CustomerServiceImpl implements CustomerService {
 
@@ -64,32 +67,23 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     @Transactional
-    public Optional<Customer> updateCustomer(UUID id, Customer customerDetails) {
-        // Pastikan ID di customerDetails sesuai dengan ID parameter
-        customerDetails.setId(id); // Ini penting untuk UpdateCustomerCommand
+    public Optional<Customer> updateCustomer(UUID id, UpdateCustomerRequestDTO customerDetailsDTO) {
+        Optional<Customer> customerOpt = customerRepository.findById(id);
+        if (customerOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        Customer customerToUpdate = customerOpt.get();
+        CustomerMapper.updateEntityFromDTO(customerDetailsDTO, customerToUpdate);
+        // updatedAt akan di-handle oleh @UpdateTimestamp
+        // customerToUpdate.setUpdatedAt(LocalDateTime.now()); // Tidak perlu jika pakai @UpdateTimestamp
+        return Optional.of(customerRepository.save(customerToUpdate));
 
-        // UpdateCustomerCommand akan mengambil customer yang ada, memperbarui field,
-        // dan memanggil customerRepository.save().
-        // updatedAt akan di-handle oleh @UpdateTimestamp.
-        UpdateCustomerCommand command = new UpdateCustomerCommand(customerRepository, customerDetails);
-        return command.execute();
-        // Atau logika update bisa langsung di sini jika tidak pakai command:
-        // return customerRepository.findById(id).map(existingCustomer -> {
-        //     if (customerDetails.getFullName() != null) {
-        //         existingCustomer.setFullName(customerDetails.getFullName());
-        //     }
-        //     if (customerDetails.getPhoneNumber() != null) {
-        //         existingCustomer.setPhoneNumber(customerDetails.getPhoneNumber());
-        //     }
-        //     if (customerDetails.getEmail() != null) {
-        //         existingCustomer.setEmail(customerDetails.getEmail());
-        //     }
-        //     if (customerDetails.getAddress() != null) {
-        //         existingCustomer.setAddress(customerDetails.getAddress());
-        //     }
-        //     // existingCustomer.setUpdatedAt(LocalDateTime.now()); // Tidak perlu jika pakai @UpdateTimestamp
-        //     return customerRepository.save(existingCustomer);
-        // });
+        // Jika Anda ingin tetap menggunakan UpdateCustomerCommand, command tersebut perlu dimodifikasi
+        // untuk menerima UpdateCustomerRequestDTO, atau Anda melakukan mapping di sini sebelum memanggil command.
+        // Untuk kesederhanaan, saya hilangkan penggunaan command di sini, tapi Anda bisa mengintegrasikannya.
+        // Contoh jika ingin tetap dengan command (command perlu diubah):
+        // UpdateCustomerFromDTOCommand command = new UpdateCustomerFromDTOCommand(customerRepository, id, customerDetailsDTO);
+        // return command.execute();
     }
 
     @Override

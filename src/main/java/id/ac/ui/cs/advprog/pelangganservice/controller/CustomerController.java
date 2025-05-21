@@ -92,43 +92,11 @@ public class CustomerController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    // Di CustomerController
     @PutMapping("/{id}")
     public ResponseEntity<CustomerResponseDTO> updateCustomer(@PathVariable UUID id,
                                                               @RequestBody /*@Valid*/ UpdateCustomerRequestDTO requestDTO) {
-        // Service layer mungkin perlu dimodifikasi untuk menerima DTO atau
-        // tetap menerima Customer entity yang sudah di-map sebagian.
-        // Untuk saat ini, kita akan map DTO ke entitas Customer untuk update.
-        // Namun, pendekatan yang lebih baik adalah service layer yang menerima DTO update.
-
-        // Pendekatan 1: Service layer menerima entitas, controller melakukan mapping parsial
-        // Ini kurang ideal karena controller jadi tahu cara mengupdate entitas.
-        // Optional<Customer> customerOpt = customerService.getCustomerById(id);
-        // if (customerOpt.isEmpty()) {
-        //     return ResponseEntity.notFound().build();
-        // }
-        // Customer customerToUpdate = customerOpt.get();
-        // CustomerMapper.updateEntityFromDTO(requestDTO, customerToUpdate);
-        // Customer updatedCustomerEntity = customerService.saveCustomer(customerToUpdate); // Perlu metode save di service
-
-        // Pendekatan 2: Service layer memiliki metode update yang menerima DTO atau field-field spesifik.
-        // Mari kita asumsikan service tetap menerima Customer object yang fieldnya sudah di-set untuk diubah.
-        // Ini berarti kita perlu cara untuk membuat Customer object dari DTO untuk update.
-        // Idealnya, service.updateCustomer(UUID id, UpdateCustomerRequestDTO dto)
-
-        // Untuk menjaga service signature saat ini (menerima Customer object untuk detail update):
-        // Kita bisa buat Customer object dari DTO, tapi ini tidak ideal karena
-        // field yang null di DTO bisa menimpa field yang sudah ada di entitas jika tidak hati-hati.
-        // Mari modifikasi service untuk menerima UpdateCustomerRequestDTO.
-
-        // Untuk sementara, jika service tetap menerima `Customer customerDetails`:
-        // Buat objek Customer dari DTO, pastikan ID-nya adalah `id` dari path
-        Customer customerDetailsForService = Customer.builder().id(id).build(); // ID penting
-        CustomerMapper.updateEntityFromDTO(requestDTO, customerDetailsForService);
-        // Perhatian: customerDetailsForService ini hanya berisi field dari DTO.
-        // UpdateCustomerCommand Anda sudah menangani pengambilan entitas asli dan update field.
-
-        Optional<Customer> updatedCustomerOpt = customerService.updateCustomer(id, customerDetailsForService);
-
+        Optional<Customer> updatedCustomerOpt = customerService.updateCustomer(id, requestDTO); // Langsung pass DTO
         return updatedCustomerOpt
                 .map(CustomerMapper::toResponseDTO)
                 .map(ResponseEntity::ok)
