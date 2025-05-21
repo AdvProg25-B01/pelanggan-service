@@ -1,5 +1,8 @@
 package id.ac.ui.cs.advprog.pelangganservice.service;
 
+// Import DTOs
+import id.ac.ui.cs.advprog.pelangganservice.dto.CustomerMapper;
+import id.ac.ui.cs.advprog.pelangganservice.dto.UpdateCustomerRequestDTO;
 import id.ac.ui.cs.advprog.pelangganservice.model.Customer;
 import id.ac.ui.cs.advprog.pelangganservice.repository.CustomerRepository;
 import id.ac.ui.cs.advprog.pelangganservice.strategy.SearchByFullNameStrategy;
@@ -10,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito; // Untuk spy jika diperlukan
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
@@ -31,13 +35,13 @@ class CustomerServiceImplTest {
     @InjectMocks
     private CustomerServiceImpl customerService;
 
-    private Customer sampleCustomer;
+    private Customer sampleCustomerEntity; // Mengganti nama agar lebih jelas ini entitas
     private UUID sampleCustomerId;
 
     @BeforeEach
     void setUp() {
         sampleCustomerId = UUID.randomUUID();
-        sampleCustomer = Customer.builder()
+        sampleCustomerEntity = Customer.builder()
                 .id(sampleCustomerId)
                 .fullName("Test Customer")
                 .email("test@example.com")
@@ -51,99 +55,73 @@ class CustomerServiceImplTest {
 
     @Test
     void testCreateCustomer() {
-        Customer newCustomerDetails = Customer.builder()
+        Customer newCustomerDetailsEntity = Customer.builder() // Ini adalah entitas yang dikirim ke service
                 .fullName("New User")
                 .email("newuser@example.com")
                 .phoneNumber("9876543210")
                 .address("456 New Ave")
-                .build(); // ID, timestamps, isActive will be set by service/repo
+                .build();
 
-        // Mock repository.save to return the customer with generated ID and timestamps
+        // Mock repository.save (dipanggil dari dalam CreateCustomerCommand)
         when(customerRepository.save(any(Customer.class))).thenAnswer(invocation -> {
             Customer c = invocation.getArgument(0);
-            if (c.getId() == null) c.setId(UUID.randomUUID()); // Simulate ID generation if service didn't set it
-            c.setCreatedAt(LocalDateTime.now()); // Simulate timestamp set by repo
-            c.setUpdatedAt(LocalDateTime.now());
-            c.setActive(true);
+            // Service sudah set ID, isActive. JPA akan set createdAt, updatedAt.
+            // Mock ini mensimulasikan JPA mengisi timestamp jika belum ada (meskipun tidak akan terjadi jika @CreationTimestamp aktif)
+            if (c.getCreatedAt() == null) c.setCreatedAt(LocalDateTime.now());
+            if (c.getUpdatedAt() == null) c.setUpdatedAt(LocalDateTime.now());
             return c;
         });
 
-        Customer createdCustomer = customerService.createCustomer(newCustomerDetails);
+        Customer createdCustomer = customerService.createCustomer(newCustomerDetailsEntity);
 
         assertNotNull(createdCustomer.getId());
         assertEquals("New User", createdCustomer.getFullName());
-        assertTrue(createdCustomer.isActive());
-        assertNotNull(createdCustomer.getCreatedAt());
-        assertNotNull(createdCustomer.getUpdatedAt());
-        // Verify that repository.save was called via the command
-        verify(customerRepository, times(1)).save(any(Customer.class));
+        assertTrue(createdCustomer.isActive()); // Di-set oleh service
+        assertNotNull(createdCustomer.getCreatedAt()); // Di-set oleh JPA/@CreationTimestamp (disimulasikan mock)
+        assertNotNull(createdCustomer.getUpdatedAt()); // Di-set oleh JPA/@UpdateTimestamp (disimulasikan mock)
+
+        verify(customerRepository, times(1)).save(argThat(savedCustomer ->
+                savedCustomer.getId() != null &&
+                        savedCustomer.getFullName().equals("New User") &&
+                        savedCustomer.isActive() // isActive di-set oleh service
+        ));
     }
 
     @Test
     void testCreateCustomer_setsTimestampsAndActive() {
-        Customer customerToCreate = Customer.builder().fullName("Fresh Customer").email("fresh@example.com").build();
+        Customer customerToCreateEntity = Customer.builder() // Ini entitas yang dikirim ke service
+                .fullName("Fresh Customer")
+                .email("fresh@example.com")
+                .build();
 
-        // Mock the save operation.
-        // Ketika customerRepository.save() dipanggil (oleh CreateCustomerCommand),
-        // kita simulasikan bahwa timestamp diisi (seperti yang dilakukan Hibernate)
-        // dan ID juga diisi (karena service sudah melakukannya).
         when(customerRepository.save(any(Customer.class))).thenAnswer(invocation -> {
-            Customer customerBeingSaved = invocation.getArgument(0); // Ini adalah customer yang sudah di-set ID dan isActive oleh service
-
-            // Simulasikan Hibernate/JPA mengisi createdAt dan updatedAt saat persist
-            if (customerBeingSaved.getCreatedAt() == null) { // Biasanya Hibernate akan mengisi ini jika null
-                customerBeingSaved.setCreatedAt(LocalDateTime.now());
-            }
-            if (customerBeingSaved.getUpdatedAt() == null) { // Biasanya Hibernate akan mengisi ini jika null
-                customerBeingSaved.setUpdatedAt(LocalDateTime.now());
-            }
-            // Atau, jika Anda hanya ingin memastikan mereka tidak null, bisa langsung set:
-            // customerBeingSaved.setCreatedAt(LocalDateTime.now());
-            // customerBeingSaved.setUpdatedAt(LocalDateTime.now());
-
-            // ID seharusnya sudah di-set oleh service, jadi kita tidak perlu set di sini
-            // isActive juga sudah di-set oleh service
-            return customerBeingSaved; // Kembalikan objek yang sudah "disimpan" dengan timestamp
+            Customer c = invocation.getArgument(0);
+            if (c.getId() == null) c.setId(UUID.randomUUID()); // Service sudah set ID
+            c.setActive(true); // Service sudah set isActive
+            // Simulasikan JPA mengisi timestamp
+            c.setCreatedAt(LocalDateTime.now());
+            c.setUpdatedAt(LocalDateTime.now());
+            return c;
         });
 
-        Customer result = customerService.createCustomer(customerToCreate);
+        Customer result = customerService.createCustomer(customerToCreateEntity);
 
-        assertNotNull(result.getId()); // Service sudah generate ID
-        assertNotNull(result.getCreatedAt(), "CreatedAt should be set by the mocked save operation");
-        assertNotNull(result.getUpdatedAt(), "UpdatedAt should be set by the mocked save operation");
-        assertTrue(result.isActive()); // Di-set oleh service
+        assertNotNull(result.getId());
+        assertNotNull(result.getCreatedAt());
+        assertNotNull(result.getUpdatedAt());
+        assertTrue(result.isActive());
 
-        // Jika Anda ingin lebih presisi dengan assertion assertEquals untuk timestamps,
-        // Anda mungkin perlu menangkap waktu sebelum dan sesudah panggilan save,
-        // atau menerima sedikit perbedaan jika mock di-set dengan LocalDateTime.now()
-        // Untuk unit test ini, assertNotNull sudah cukup untuk memvalidasi bahwa mereka di-set.
-        // Jika Anda ingin assertEquals(result.getCreatedAt(), result.getUpdatedAt()),
-        // pastikan mock Anda mengaturnya ke nilai yang sama atau sangat dekat.
-        // Dalam mock di atas, jika keduanya di-set dengan LocalDateTime.now() yang berbeda instance,
-        // mereka mungkin tidak sama persis.
-        // Jika ingin sama persis untuk test ini:
-        // LocalDateTime now = LocalDateTime.now();
-        // customerBeingSaved.setCreatedAt(now);
-        // customerBeingSaved.setUpdatedAt(now);
-        // Lalu assertion assertEquals akan pass.
-
-        // Namun, untuk tujuan test "setsTimestampsAndActive", assertNotNull sudah cukup.
-        // Yang lebih penting adalah bahwa service menyiapkan data dengan benar dan memanggil save.
-
-        // Verifikasi bahwa customer yang disave memiliki ID dan isActive yang benar
         verify(customerRepository).save(argThat(savedCustomer ->
                 savedCustomer.getId() != null &&
-                        savedCustomer.isActive() && // isActive di-set oleh service sebelum save
-                        // createdAt dan updatedAt akan di-set oleh mock save kita (mensimulasikan JPA)
-                        // jadi kita tidak perlu cek nilainya di argThat di sini, cukup di assertion di atas.
-                        savedCustomer.getFullName().equals("Fresh Customer")
+                        savedCustomer.getFullName().equals("Fresh Customer") &&
+                        savedCustomer.isActive()
         ));
     }
 
 
     @Test
     void testGetAllCustomers() {
-        List<Customer> customers = Arrays.asList(sampleCustomer, Customer.builder().id(UUID.randomUUID()).build());
+        List<Customer> customers = Arrays.asList(sampleCustomerEntity, Customer.builder().id(UUID.randomUUID()).build());
         when(customerRepository.findAll()).thenReturn(customers);
 
         List<Customer> result = customerService.getAllCustomers();
@@ -154,12 +132,12 @@ class CustomerServiceImplTest {
 
     @Test
     void testGetCustomerById_found() {
-        when(customerRepository.findById(sampleCustomerId)).thenReturn(Optional.of(sampleCustomer));
+        when(customerRepository.findById(sampleCustomerId)).thenReturn(Optional.of(sampleCustomerEntity));
 
         Optional<Customer> result = customerService.getCustomerById(sampleCustomerId);
 
         assertTrue(result.isPresent());
-        assertEquals(sampleCustomer, result.get());
+        assertEquals(sampleCustomerEntity, result.get());
         verify(customerRepository, times(1)).findById(sampleCustomerId);
     }
 
@@ -176,82 +154,107 @@ class CustomerServiceImplTest {
 
     @Test
     void testUpdateCustomer_found() {
-        Customer updatedDetails = Customer.builder()
-                .fullName("Updated Name")
-                .email("updated@example.com")
-                .isActive(false)
-                .build(); // ID will be set by service to match
+        // DTO yang dikirim ke service.updateCustomer
+        UpdateCustomerRequestDTO updateRequestDTO = UpdateCustomerRequestDTO.builder()
+                .fullName("Updated Name From DTO")
+                .email("updated.dto@example.com")
+                // phoneNumber dan address null, tidak akan diupdate oleh CustomerMapper.updateEntityFromDTO
+                .build();
 
-        // Mock findById for the UpdateCustomerCommand
-        when(customerRepository.findById(sampleCustomerId)).thenReturn(Optional.of(new Customer(
-                sampleCustomer.getId(),
-                sampleCustomer.getFullName(),
-                sampleCustomer.getPhoneNumber(),
-                sampleCustomer.getEmail(),
-                sampleCustomer.getAddress(),
-                sampleCustomer.isActive(),
-                sampleCustomer.getCreatedAt(),
-                sampleCustomer.getUpdatedAt()
-        ))); // Return a copy to avoid direct modification issues
+        // Salinan dari sampleCustomerEntity yang akan dimodifikasi
+        // Penting untuk membuat salinan baru agar objek asli sampleCustomerEntity tidak berubah
+        // dan bisa digunakan untuk perbandingan state awal.
+        Customer existingCustomerInDb = Customer.builder()
+                .id(sampleCustomerEntity.getId())
+                .fullName(sampleCustomerEntity.getFullName())
+                .email(sampleCustomerEntity.getEmail())
+                .phoneNumber(sampleCustomerEntity.getPhoneNumber())
+                .address(sampleCustomerEntity.getAddress())
+                .isActive(sampleCustomerEntity.isActive())
+                .createdAt(sampleCustomerEntity.getCreatedAt())
+                .updatedAt(sampleCustomerEntity.getUpdatedAt())
+                .build();
 
-        // Mock save for the UpdateCustomerCommand
+        // Mock findById untuk mengembalikan salinan entitas yang ada
+        when(customerRepository.findById(sampleCustomerId)).thenReturn(Optional.of(existingCustomerInDb));
+
+        // Mock save untuk mengembalikan entitas yang sudah dimodifikasi
+        // CustomerMapper.updateEntityFromDTO akan dipanggil di dalam service,
+        // jadi kita hanya perlu memastikan save mengembalikan entitas yang sudah termodifikasi tersebut.
+        // Dan JPA/@UpdateTimestamp akan mengurus updatedAt.
         when(customerRepository.save(any(Customer.class))).thenAnswer(invocation -> {
-            Customer c = invocation.getArgument(0);
-            c.setUpdatedAt(LocalDateTime.now()); // Simulate repo setting updatedAt
-            return c;
+            Customer customerToSave = invocation.getArgument(0);
+            // Simulasikan @UpdateTimestamp
+            customerToSave.setUpdatedAt(LocalDateTime.now().plusMinutes(1)); // Beri nilai berbeda untuk pengecekan
+            return customerToSave;
         });
 
-        Optional<Customer> resultOpt = customerService.updateCustomer(sampleCustomerId, updatedDetails);
+        // Panggil metode service dengan DTO
+        Optional<Customer> resultOpt = customerService.updateCustomer(sampleCustomerId, updateRequestDTO);
 
         assertTrue(resultOpt.isPresent());
         Customer result = resultOpt.get();
-        assertEquals(sampleCustomerId, result.getId());
-        assertEquals("Updated Name", result.getFullName());
-        assertEquals("updated@example.com", result.getEmail()); // Email is updated
-//        assertFalse(result.isActive());
-        assertTrue(result.isActive(), "Status 'active' seharusnya tetap true.");
-        assertTrue(result.getUpdatedAt().isAfter(sampleCustomer.getUpdatedAt()));
 
-        verify(customerRepository, times(1)).findById(sampleCustomerId); // Called by command
-        verify(customerRepository, times(1)).save(any(Customer.class)); // Called by command
+        assertEquals(sampleCustomerId, result.getId());
+        assertEquals("Updated Name From DTO", result.getFullName()); // Diupdate dari DTO
+        assertEquals("updated.dto@example.com", result.getEmail()); // Diupdate dari DTO
+        assertEquals(sampleCustomerEntity.getPhoneNumber(), result.getPhoneNumber()); // Tidak diupdate, tetap dari original
+        assertEquals(sampleCustomerEntity.getAddress(), result.getAddress());         // Tidak diupdate, tetap dari original
+        assertTrue(result.isActive()); // Asumsi isActive tidak diubah jika tidak ada di DTO
+        assertEquals(sampleCustomerEntity.getCreatedAt(), result.getCreatedAt()); // CreatedAt tidak berubah
+        assertTrue(result.getUpdatedAt().isAfter(sampleCustomerEntity.getUpdatedAt()), "UpdatedAt should be newer");
+
+        // Verifikasi findById dipanggil
+        verify(customerRepository, times(1)).findById(sampleCustomerId);
+        // Verifikasi save dipanggil dengan entitas yang field-nya sudah diupdate sesuai DTO
+        verify(customerRepository, times(1)).save(argThat(savedCustomer ->
+                savedCustomer.getId().equals(sampleCustomerId) &&
+                        savedCustomer.getFullName().equals("Updated Name From DTO") &&
+                        savedCustomer.getEmail().equals("updated.dto@example.com") &&
+                        // Pastikan field yang tidak ada di DTO tidak berubah (jika itu perilakunya)
+                        savedCustomer.getPhoneNumber().equals(sampleCustomerEntity.getPhoneNumber()) &&
+                        savedCustomer.getAddress().equals(sampleCustomerEntity.getAddress()) &&
+                        savedCustomer.isActive() == sampleCustomerEntity.isActive() // isActive tetap
+        ));
     }
 
     @Test
     void testUpdateCustomer_notFound() {
         UUID notFoundId = UUID.randomUUID();
-        Customer updatedDetails = Customer.builder().fullName("Non Existent").build();
+        UpdateCustomerRequestDTO updateRequestDTO = UpdateCustomerRequestDTO.builder()
+                .fullName("Non Existent DTO").build();
 
-        when(customerRepository.findById(notFoundId)).thenReturn(Optional.empty()); // For command
+        when(customerRepository.findById(notFoundId)).thenReturn(Optional.empty());
 
-        Optional<Customer> result = customerService.updateCustomer(notFoundId, updatedDetails);
+        Optional<Customer> result = customerService.updateCustomer(notFoundId, updateRequestDTO);
 
         assertFalse(result.isPresent());
-        verify(customerRepository, times(1)).findById(notFoundId); // Called by command
+        verify(customerRepository, times(1)).findById(notFoundId);
         verify(customerRepository, never()).save(any(Customer.class));
     }
 
     @Test
     void testDeleteCustomer_found() {
-        // Mock findById for the DeleteCustomerCommand
-        when(customerRepository.findById(sampleCustomerId)).thenReturn(Optional.of(sampleCustomer));
-        // No need to mock deleteById for void, Mockito handles it. If it returned something, we'd mock that.
+        when(customerRepository.findById(sampleCustomerId)).thenReturn(Optional.of(sampleCustomerEntity));
+        // Mockito akan menangani void method seperti deleteById tanpa perlu when().then...
+        // kecuali Anda ingin memverifikasi sesuatu yang sangat spesifik terjadi saat dipanggil.
 
         boolean result = customerService.deleteCustomer(sampleCustomerId);
 
         assertTrue(result);
-        verify(customerRepository, times(1)).findById(sampleCustomerId); // Called by command
-        verify(customerRepository, times(1)).deleteById(sampleCustomerId); // Called by command
+        verify(customerRepository, times(1)).findById(sampleCustomerId); // Dipanggil oleh DeleteCustomerCommand
+        verify(customerRepository, times(1)).deleteById(sampleCustomerId); // Dipanggil oleh DeleteCustomerCommand
     }
 
     @Test
     void testDeleteCustomer_notFound() {
         UUID notFoundId = UUID.randomUUID();
-        when(customerRepository.findById(notFoundId)).thenReturn(Optional.empty()); // For command
+        when(customerRepository.findById(notFoundId)).thenReturn(Optional.empty());
 
         boolean result = customerService.deleteCustomer(notFoundId);
 
         assertFalse(result);
-        verify(customerRepository, times(1)).findById(notFoundId); // Called by command
+        verify(customerRepository, times(1)).findById(notFoundId);
         verify(customerRepository, never()).deleteById(notFoundId);
     }
 
@@ -263,7 +266,7 @@ class CustomerServiceImplTest {
         List<Customer> allCustomers = Arrays.asList(customer1, customer2, customer3);
 
         when(customerRepository.findAll()).thenReturn(allCustomers);
-        SearchStrategy fullNameStrategy = new SearchByFullNameStrategy();
+        SearchStrategy fullNameStrategy = new SearchByFullNameStrategy(); // Atau mock strategy jika diperlukan
 
         List<Customer> searchResults = customerService.searchCustomers("Alice", fullNameStrategy);
 
