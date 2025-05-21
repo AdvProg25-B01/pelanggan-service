@@ -165,7 +165,8 @@ class CustomerServiceImplTest {
         assertEquals(sampleCustomerId, result.getId());
         assertEquals("Updated Name", result.getFullName());
         assertEquals("updated@example.com", result.getEmail()); // Email is updated
-        assertFalse(result.isActive());
+//        assertFalse(result.isActive());
+        assertTrue(result.isActive(), "Status 'active' seharusnya tetap true.");
         assertTrue(result.getUpdatedAt().isAfter(sampleCustomer.getUpdatedAt()));
 
         verify(customerRepository, times(1)).findById(sampleCustomerId); // Called by command

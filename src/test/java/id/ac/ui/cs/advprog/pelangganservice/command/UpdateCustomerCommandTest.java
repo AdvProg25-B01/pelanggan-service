@@ -21,12 +21,15 @@ class UpdateCustomerCommandTest {
     @Test
     void testExecute_customerExists() {
         UUID customerId = UUID.randomUUID();
+        LocalDateTime initialUpdatedAt = LocalDateTime.now().minusHours(1);
         Customer existingCustomer = Customer.builder()
                 .id(customerId)
                 .fullName("Old Name")
                 .email("old@example.com")
+                .phoneNumber("123") // Tambahkan field yang diupdate oleh command
+                .address("Old Address") // Tambahkan field yang diupdate oleh command
                 .createdAt(LocalDateTime.now().minusDays(1))
-                .updatedAt(LocalDateTime.now().minusHours(1))
+                .updatedAt(initialUpdatedAt)
                 .isActive(true)
                 .build();
 
@@ -34,6 +37,8 @@ class UpdateCustomerCommandTest {
                 .id(customerId) // ID must match
                 .fullName("New Name")
                 .email("new@example.com")
+                .phoneNumber("456") // Tambahkan field yang diupdate oleh command
+                .address("New Address") // Tambahkan field yang diupdate oleh command
                 .isActive(false)
                 .build();
 
@@ -58,12 +63,21 @@ class UpdateCustomerCommandTest {
         assertEquals(customerId, result.getId());
         assertEquals("New Name", result.getFullName());
         assertEquals("new@example.com", result.getEmail());
-        assertFalse(result.isActive());
+        assertEquals("456", result.getPhoneNumber());
+        assertEquals("New Address", result.getAddress());
+        assertTrue(result.isActive(), "Status 'active' seharusnya tetap true.");
         assertNotNull(result.getUpdatedAt());
-        assertTrue(result.getUpdatedAt().isAfter(existingCustomer.getUpdatedAt())); // Check if updatedAt is new
+        assertTrue(result.getUpdatedAt().isAfter(initialUpdatedAt), "UpdatedAt should be newer.");
 
         verify(customerRepository, times(1)).findById(customerId);
-        verify(customerRepository, times(1)).save(any(Customer.class)); // Check that save was called
+        verify(customerRepository, times(1)).save(argThat(savedCustomer ->
+                savedCustomer.getId().equals(customerId) &&
+                        savedCustomer.getFullName().equals("New Name") &&
+                        savedCustomer.getEmail().equals("new@example.com") &&
+                        savedCustomer.getPhoneNumber().equals("456") && // Pastikan ini juga dicek
+                        savedCustomer.getAddress().equals("New Address") && // Pastikan ini juga dicek
+                        savedCustomer.isActive() // Harus true
+        ));
     }
 
     @Test
