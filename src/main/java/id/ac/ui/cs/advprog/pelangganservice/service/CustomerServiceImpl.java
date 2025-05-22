@@ -19,8 +19,15 @@ import java.util.UUID;
 import id.ac.ui.cs.advprog.pelangganservice.dto.UpdateCustomerRequestDTO;
 import id.ac.ui.cs.advprog.pelangganservice.dto.CustomerMapper;
 
+import org.slf4j.Logger; // Untuk logging
+import org.slf4j.LoggerFactory; // Untuk logging
+import org.springframework.scheduling.annotation.Async; // Import @Async
+import java.util.concurrent.CompletableFuture; // Import CompletableFuture
+
 @Service
 public class CustomerServiceImpl implements CustomerService {
+
+    private static final Logger logger = LoggerFactory.getLogger(CustomerServiceImpl.class); // Logger
 
     private final CustomerRepository customerRepository; // Sekarang ini adalah Spring Data JPA Repository
 
@@ -32,25 +39,53 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional // Penting untuk operasi tulis (create, update, delete)
     public Customer createCustomer(Customer customer) {
-        // ID akan di-generate jika null sebelum persist (jika tidak pakai @GeneratedValue dan di-set manual)
-        // atau bisa di-set di sini jika perlu logika khusus sebelum command
         if (customer.getId() == null) {
             customer.setId(UUID.randomUUID());
         }
-        // createdAt dan updatedAt akan di-handle oleh @CreationTimestamp dan @UpdateTimestamp
-        // jadi tidak perlu di-set di sini lagi.
-        // customer.setCreatedAt(LocalDateTime.now());
-        // customer.setUpdatedAt(LocalDateTime.now());
-
-        // isActive tetap penting di-set di sini sebagai default untuk customer baru
         customer.setActive(true);
 
-        // Command pattern tetap bisa digunakan.
-        // CreateCustomerCommand akan memanggil customerRepository.save(customer)
         CreateCustomerCommand command = new CreateCustomerCommand(customerRepository, customer);
-        return command.execute();
-        // Atau langsung:
-        // return customerRepository.save(customer);
+        Customer createdCustomer = command.execute(); // Simpan Customer dulu
+
+        // Setelah customer berhasil disimpan, panggil tugas asinkron
+        if (createdCustomer != null) {
+            sendWelcomeEmailAsync(createdCustomer);
+            logCustomerCreationAuditEventAsync(createdCustomer.getId(), "CREATE_CUSTOMER_SUCCESS");
+        }
+
+        return createdCustomer;
+    }
+
+    // Metode Asinkron untuk mengirim email (simulasi)
+    @Async
+    public CompletableFuture<Void> sendWelcomeEmailAsync(Customer customer) {
+        logger.info("Starting to send welcome email to: {} (ID: {}) on thread: {}",
+                customer.getEmail(), customer.getId(), Thread.currentThread().getName());
+        try {
+            // Simulasi proses pengiriman email yang memakan waktu
+            Thread.sleep(3000); // Tunggu 3 detik
+            logger.info("Successfully sent welcome email to: {}", customer.getEmail());
+        } catch (InterruptedException e) {
+            logger.error("Email sending was interrupted for customer: {}", customer.getEmail(), e);
+            Thread.currentThread().interrupt(); // Set interrupt flag
+        }
+        return CompletableFuture.completedFuture(null); // Kembalikan Future yang sudah selesai (untuk tipe void)
+    }
+
+    // Metode Asinkron untuk logging audit (simulasi)
+    @Async
+    public CompletableFuture<Void> logCustomerCreationAuditEventAsync(UUID customerId, String eventType) {
+        logger.info("Starting audit logging for customer ID: {} - Event: {} on thread: {}",
+                customerId, eventType, Thread.currentThread().getName());
+        try {
+            // Simulasi proses logging ke sistem audit eksternal
+            Thread.sleep(1000); // Tunggu 1 detik
+            logger.info("Successfully logged audit event for customer ID: {} - Event: {}", customerId, eventType);
+        } catch (InterruptedException e) {
+            logger.error("Audit logging was interrupted for customer ID: {}", customerId, e);
+            Thread.currentThread().interrupt();
+        }
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override
@@ -74,39 +109,19 @@ public class CustomerServiceImpl implements CustomerService {
         }
         Customer customerToUpdate = customerOpt.get();
         CustomerMapper.updateEntityFromDTO(customerDetailsDTO, customerToUpdate);
-        // updatedAt akan di-handle oleh @UpdateTimestamp
-        // customerToUpdate.setUpdatedAt(LocalDateTime.now()); // Tidak perlu jika pakai @UpdateTimestamp
         return Optional.of(customerRepository.save(customerToUpdate));
-
-        // Jika Anda ingin tetap menggunakan UpdateCustomerCommand, command tersebut perlu dimodifikasi
-        // untuk menerima UpdateCustomerRequestDTO, atau Anda melakukan mapping di sini sebelum memanggil command.
-        // Untuk kesederhanaan, saya hilangkan penggunaan command di sini, tapi Anda bisa mengintegrasikannya.
-        // Contoh jika ingin tetap dengan command (command perlu diubah):
-        // UpdateCustomerFromDTOCommand command = new UpdateCustomerFromDTOCommand(customerRepository, id, customerDetailsDTO);
-        // return command.execute();
     }
 
     @Override
     @Transactional
     public boolean deleteCustomer(UUID id) {
-        // DeleteCustomerCommand akan memeriksa apakah ada dan memanggil deleteById.
         DeleteCustomerCommand command = new DeleteCustomerCommand(customerRepository, id);
         return command.execute();
-        // Atau langsung:
-        // if (customerRepository.existsById(id)) {
-        //     customerRepository.deleteById(id);
-        //     return true;
-        // }
-        // return false;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Customer> searchCustomers(String searchTerm, SearchStrategy searchStrategy) {
-        // Strategi search masih akan bekerja pada List<Customer> yang diambil dari repository.
-        // Untuk performa yang lebih baik pada database besar, Anda mungkin ingin
-        // memindahkan logika search ke dalam query JPA (misalnya dengan Spesifikasi JPA atau Querydsl),
-        // tetapi untuk saat ini, pendekatan yang ada akan berfungsi.
         List<Customer> allCustomers = customerRepository.findAll();
         return searchStrategy.search(allCustomers, searchTerm);
     }
