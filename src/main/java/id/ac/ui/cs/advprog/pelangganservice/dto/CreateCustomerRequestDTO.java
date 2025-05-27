@@ -15,8 +15,6 @@ import lombok.Builder;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateCustomerRequestDTO {
-    // @NotBlank(message = "Full name is mandatory")
-    // @Size(min = 3, max = 100, message = "Full name must be between 3 and 100 characters")
     private String fullName;
 
     private String phoneNumber; // Bisa opsional
@@ -26,6 +24,4 @@ public class CreateCustomerRequestDTO {
     private String email;
 
     private String address; // Bisa opsional
-
-    // `id`, `isActive`, `createdAt`, `updatedAt` tidak ada di sini karena akan di-handle oleh backend
 }

@@ -33,11 +33,6 @@ public class CustomerMapper {
                 .build();
     }
 
-    // Untuk update, biasanya kita tidak membuat entitas baru, tapi mengupdate yang sudah ada.
-    // Jadi, mapper untuk UpdateCustomerRequestDTO lebih sering digunakan untuk
-    // mentransfer data ke service, yang kemudian akan mengupdate entitas yang ada.
-    // Atau, service menerima DTO dan entitas, lalu mengaplikasikan perubahan dari DTO ke entitas.
-
     public static void updateEntityFromDTO(UpdateCustomerRequestDTO dto, Customer customerToUpdate) {
         if (dto == null || customerToUpdate == null) {
             return;

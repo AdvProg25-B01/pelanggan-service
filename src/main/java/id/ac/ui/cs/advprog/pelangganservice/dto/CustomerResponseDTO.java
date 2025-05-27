@@ -21,6 +21,4 @@ public class CustomerResponseDTO {
     private boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    // Anda bisa menghilangkan field yang tidak ingin diekspos,
-    // atau menambahkan field hasil komputasi/format jika perlu.
 }
