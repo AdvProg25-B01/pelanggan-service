@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/customers")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = {"http://localhost:3000", "https://main.d2mcs3ch2l35ck.amplifyapp.com"})
 public class CustomerController {
 
     private final CustomerService customerService;
