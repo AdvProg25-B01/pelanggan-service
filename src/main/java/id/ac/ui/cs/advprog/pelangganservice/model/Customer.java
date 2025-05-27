@@ -20,9 +20,6 @@ import java.util.UUID;
 public class Customer {
 
     @Id // Menandakan field ini sebagai primary key
-    // @GeneratedValue(strategy = GenerationType.UUID) // Jika ingin database menghasilkan UUID
-    // Jika Anda ingin tetap menggunakan UUID yang di-generate oleh aplikasi seperti sebelumnya,
-    // maka tidak perlu @GeneratedValue. Pastikan ID di-set sebelum save jika null.
     @Column(columnDefinition = "UUID", updatable = false, nullable = false) // Definisi kolom untuk UUID di PostgreSQL
     private UUID id;
 
@@ -47,24 +44,4 @@ public class Customer {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    // Jika Anda ingin mengatur nilai default untuk isActive, createdAt, updatedAt saat objek dibuat (sebelum persist)
-    // Anda bisa menggunakan @PrePersist dan @PreUpdate, atau melakukannya di service layer
-    // seperti yang sudah Anda lakukan. Dengan @CreationTimestamp dan @UpdateTimestamp,
-    // Hibernate akan mengelolanya.
-
-    // @PrePersist
-    // protected void onCreate() {
-    //     if (createdAt == null) {
-    //         createdAt = LocalDateTime.now();
-    //     }
-    //     if (updatedAt == null) {
-    //         updatedAt = LocalDateTime.now();
-    //     }
-    //     // isActive biasanya di-set secara eksplisit di service
-    // }
-
-    // @PreUpdate
-    // protected void onUpdate() {
-    //     updatedAt = LocalDateTime.now();
-    // }
 }

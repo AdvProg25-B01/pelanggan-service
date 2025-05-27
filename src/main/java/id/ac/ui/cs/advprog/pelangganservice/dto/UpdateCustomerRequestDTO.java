@@ -22,9 +22,4 @@ public class UpdateCustomerRequestDTO {
     private String email; // Opsional
 
     private String address; // Opsional
-
-    // Pertimbangkan apakah isActive bisa diubah melalui update biasa.
-    // Jika ya, tambahkan:
-    // private Boolean isActive; // Gunakan Boolean agar bisa null (tidak ada perubahan)
-    // Jika tidak, jangan sertakan.
 }

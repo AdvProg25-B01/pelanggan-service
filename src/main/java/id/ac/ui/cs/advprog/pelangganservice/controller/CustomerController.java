@@ -40,7 +40,6 @@ public class CustomerController {
     }
 
     @PostMapping
-    // Gunakan @Valid jika ada anotasi validasi di DTO
     public ResponseEntity<CustomerResponseDTO> createCustomer(@RequestBody /*@Valid*/ CreateCustomerRequestDTO requestDTO) {
         Customer customerToCreate = CustomerMapper.toEntity(requestDTO);
         Customer createdCustomer = customerService.createCustomer(customerToCreate);

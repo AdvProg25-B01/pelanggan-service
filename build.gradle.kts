@@ -39,6 +39,8 @@ dependencies {
     testImplementation("org.mockito:mockito-junit-jupiter")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     runtimeOnly("org.postgresql:postgresql")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("io.micrometer:micrometer-registry-prometheus")
 }
 
 tasks.withType<Test> {

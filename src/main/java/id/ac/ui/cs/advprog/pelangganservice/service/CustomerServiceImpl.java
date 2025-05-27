@@ -37,7 +37,7 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    @Transactional // Penting untuk operasi tulis (create, update, delete)
+    @Transactional
     public Customer createCustomer(Customer customer) {
         if (customer.getId() == null) {
             customer.setId(UUID.randomUUID());
@@ -89,7 +89,7 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    @Transactional(readOnly = true) // Baik untuk operasi baca
+    @Transactional(readOnly = true)
     public List<Customer> getAllCustomers() {
         return customerRepository.findAll();
     }
