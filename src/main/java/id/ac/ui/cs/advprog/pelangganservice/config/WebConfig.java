@@ -11,7 +11,9 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**") // Path yang ingin diizinkan CORS
-                .allowedOrigins("http://localhost:3000") // URL frontend Anda
+                .allowedOrigins("http://localhost:3000",
+                        "https://main.d2mcs3ch2l35ck.amplifyapp.com"
+                ) // URL frontend Anda
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // Metode HTTP yang diizinkan
                 .allowedHeaders("*") // Header yang diizinkan
                 .allowCredentials(true); // Jika Anda menggunakan cookies/session
